@@ -12,7 +12,7 @@ import logging
 import os
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
@@ -414,8 +414,23 @@ def run_scan() -> None:
     new_articles = [a for a in articles if a["guid"] not in history]
     log.info("전체 %d개 중 신규 %d개", len(articles), len(new_articles))
 
+    # 과거 기사는 전송하지 않고 캐시에만 저장 (최근 3시간 이내 기사만 유지)
+    recent_articles = []
+    now = datetime.now(timezone.utc)
+    for a in new_articles:
+        try:
+            pub_date = parsedate_to_datetime(a["published"])
+            if now - pub_date <= timedelta(hours=3):
+                recent_articles.append(a)
+            else:
+                history.add(a["guid"]) # 전송하진 않되, 앞으로 중복 검색되지 않도록 히스토리에만 추가
+        except Exception:
+            recent_articles.append(a)
+
+    log.info("이 중 최근 3시간 이내의 최신 기사 %d개만 처리합니다.", len(recent_articles))
+
     sent_count = 0
-    for article in new_articles:
+    for article in recent_articles:
         log.info("처리 중: %s", article["title"][:80])
 
         # 1) Gemini 번역 & 분석
