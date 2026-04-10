@@ -1,0 +1,49 @@
+name: Stock News Bot
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 매시 정각 실행 (UTC 기준)
+  workflow_dispatch:       # 수동 실행 허용
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore history cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/history.json
+          key: history-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            history-
+
+      - name: Create data directory
+        run: mkdir -p data
+
+      - name: Run scan
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python bot.py --once
+
+      - name: Save history cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/history.json
+          key: history-${{ github.run_id }}-${{ github.run_attempt }}

@@ -1,0 +1,20 @@
+poll_interval_seconds: 300   # 5분마다 폴링 (+ 최대 60초 jitter)
+max_articles_per_ticker: 3   # 한 번에 최대 3개 기사 알림
+
+tickers:
+  - symbol: AAPL
+    label: "Apple"
+  - symbol: TSLA
+    label: "Tesla"
+  - symbol: NVDA
+    label: "NVIDIA"
+  - symbol: MSFT
+    label: "Microsoft"
+
+slack:
+  max_retries: 3
+  retry_backoff_seconds: 2
+
+dedup:
+  ttl_days: 7                       # 7일 지난 기사는 중복 체크에서 제거
+  store_path: "data/seen_articles.json"
